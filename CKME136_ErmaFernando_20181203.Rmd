@@ -1,0 +1,476 @@
+---
+title: 'CKME136 Capstone Project'
+author: "Erma Fernando (Student Number 500925471)"
+output:
+  word_document: default
+  pdf_document: default
+  
+---
+# Load Data
+### 1. Read the csv files for 2011, 2012, 2013, 1014, 2015
+```{r}
+
+data2011<-read.csv(file="C:/RY/CKME136/OntarioGHG data/FinalData/bps_raw_2011_FINAL.csv",header=T,sep=",")
+data2012<-read.csv(file="C:/RY/CKME136/OntarioGHG data/FinalData/bps_raw_2012_FINAL.csv",header=T,sep=",")
+data2013<-read.csv(file="C:/RY/CKME136/OntarioGHG data/FinalData/bps_raw_2013_FINAL.csv",header=T,sep=",")
+data2014<-read.csv(file="C:/RY/CKME136/OntarioGHG data/FinalData/bps_raw_2014_FINAL.csv",header=T,sep=",")
+data2015<-read.csv(file="C:/RY/CKME136/OntarioGHG data/FinalData/bps_raw_2015_FINAL.csv",header=T,sep=",")
+
+
+### 2. Merge the data frames for 2011, 2012, 2013, 1014, 2015
+all_data <-rbind(data2011, data2012, data2013, data2014, data2015)
+
+```
+
+# Initial Analysis of the data and Data Preparation
+
+```{r}
+
+# column headers
+names(all_data)
+# remove columns that are not necessary like Unit of measure etc
+all_data<-all_data[,-c(9,10, 17, 18, 19, 22,24,26,28,30,31,32,35,36,37,40,44,45)]
+# column headers
+names(all_data)
+#num of rows,num of columns, data types
+str(all_data)
+# 88259 rows 27 columns
+#convert Year to a factor
+all_data$Year<- as.factor(all_data$Year)
+
+# Convert TRUE to 1 and FALSE and NA to 0. Then convert these variables to factors
+all_data$SwimmingPool<-ifelse(all_data$SwimmingPool=="TRUE",1,0)
+
+all_data$DistrictHeating_IsRenewable<-ifelse(all_data$DistrictHeating_IsRenewable=="TRUE",1,0)
+
+all_data$DistrictCooling_IsRenewable<-ifelse(all_data$DistrictCooling_IsRenewable=="TRUE",1,0)
+
+all_data$SwimmingPool<- as.factor(all_data$SwimmingPool)
+
+all_data$DistrictHeating_IsRenewable<- as.factor(all_data$DistrictHeating_IsRenewable)
+
+all_data$DistrictCooling_IsRenewable<- as.factor(all_data$DistrictCooling_IsRenewable)
+
+str(all_data)
+
+
+# How many missing data in columns
+sapply(all_data, function(x) sum(is.na(x)))
+
+
+# replace null values in numerical columns with 0 
+all_data[is.na(all_data)] <- 0
+
+# Check rows with missing data - none - because all replaced with 0 in last step
+sapply(all_data, function(x) sum(is.na(x)))
+
+#num of rows,num of columns, data types 88615 obs. of  27 variables
+str(all_data)
+# min, max, median, mean 1st quartile, 3rd quartile
+summary(all_data)
+
+# count of various data types -factor 8 numeric 19
+table(unlist(lapply(all_data,class)))
+
+#list the unique values in variable "OperationType""
+sapply(all_data, function(x) unique(all_data$OperationType))
+
+# Convert operation types to numerical values in new column TypeofOperation
+
+TypeofOperation<-ifelse(all_data$OperationType=='Administrative office',1,
+ifelse(all_data$OperationType=='Library',2,   
+ifelse(all_data$OperationType=='Water treatment',3, 
+ifelse(all_data$OperationType=='Water pumping',4,
+ifelse(all_data$OperationType== 'Sewage treatment',5,
+ifelse(all_data$OperationType== 'Sewage pumping', 6,
+ifelse(all_data$OperationType== 'Police station',7,
+ifelse(all_data$OperationType== 'Fire station',8,
+ifelse(all_data$OperationType== 'Storage',9,
+ifelse(all_data$OperationType== 'Community centres',10,
+ifelse(all_data$OperationType== 'Classrooms', 11,
+ifelse(all_data$OperationType== 'Hospital', 12,
+ifelse(all_data$OperationType== 'Ambulance station', 13,
+ifelse(all_data$OperationType== 'Laboratories', 14,
+ifelse(all_data$OperationType== 'Student residences', 15,  
+ifelse(all_data$OperationType== 'Recreational facilities', 16,  
+ifelse(all_data$OperationType== 'School', 17,
+ifelse(all_data$OperationType== 'Parking', 18,  
+ifelse(all_data$OperationType== 'Indoor swimming pools', 19,
+ifelse(all_data$OperationType== 'Indoor ice rinks', 20,
+ifelse(all_data$OperationType== 'Multi-use', 21,
+ifelse(all_data$OperationType== 'Art galleries', 22,
+ifelse(all_data$OperationType== 'Performing arts facilities',  23, 
+ifelse(all_data$OperationType== 'Auditoriums', 24,
+  ifelse(all_data$OperationType== 'Other', 25 ,26
+          )))))))))))))))))))))))))
+
+#convert Operation to a factor
+TypeofOperation<- as.factor(TypeofOperation)
+
+#combine the Operation with the dataframe
+all_data<-cbind(all_data,TypeofOperation)
+
+#list the unique values in variable Sector
+sapply(all_data, function(x) unique(all_data$Sector))
+
+
+# Convert Sector to numerical values in new column TypeofSector
+TypeofSector<-ifelse(all_data$Sector=='Post-Secondary Educational Institution',1,
+ifelse(all_data$Sector=='Public Hospital',2,   
+ ifelse(all_data$Sector=='Municipal',3, 
+  ifelse(all_data$Sector=='School Board',4,5))))
+
+#convert Operation to a factor
+TypeofSector<- as.factor(TypeofSector)
+
+
+#combine the Operation with the dataframe
+all_data<-cbind(all_data,TypeofSector)
+
+# 88259 obs. of  29 variables 
+str(all_data)
+
+#write back to disk file will contain all 5 years of data if want to verify data
+# commented out code below
+#write.csv(all_data, file = "C:/RY/CKME136/OntarioGHG data/FinalData/All_Data.csv")
+
+
+```
+
+
+# Load the libraries
+
+```{r}
+# When Load packages - packages will be stored in C:\software\packages because set env variable R_LIBS_USER
+
+#install.packages("dplyr")
+library(plyr)
+library(dplyr)
+#install.packages("ggplot2")
+library(ggplot2)
+#install.packages("corrplot")
+library(corrplot)
+
+
+```
+
+# Exploratory phase 
+#  Normalize the data (normalize numerical columns)
+
+```{r}
+
+#first remove rows that have value less than 1 KG  for GHG emisssions
+#now have 87774 obs. of  29 variables
+all_data<-all_data[all_data$GHGEmissions_KG>1,]
+
+str(all_data)
+summary(all_data)
+
+
+# normalize the data
+normalize <- function(x){
+  return ((x-min(x))/(max(x) - min(x)))
+}
+
+all_data_n<- all_data %>%
+    mutate_if(is.numeric, normalize)
+
+str(all_data_n)
+summary(all_data_n)
+
+
+```
+
+
+# Exploratory phase
+
+# Plotting the normalized data to look at correlations and outliers 
+
+```{r}
+
+####### Plots
+# plots below show attributes which are correlated to GHG
+plot(x=all_data_n$Electricity_kwh, y=all_data_n$GHGEmissions_KG) 
+plot(x=all_data_n$NaturalGas_Cubicmeter, y=all_data_n$GHGEmissions_KG) 
+plot(x=all_data_n$FuelOil12_L, y=all_data_n$GHGEmissions_KG) 
+plot(x=all_data_n$FuelOil46_L, y=all_data_n$GHGEmissions_KG)  
+
+# plots below show attributes which are not correlated to GHG
+plot(x=all_data_n$TotalIndoorSpace_sqft, y=all_data_n$GHGEmissions_KG)
+plot(x=all_data_n$WeeklyAverageHours, y=all_data_n$GHGEmissions_KG)
+plot(x=all_data_n$AnnualFlow_M , y=all_data_n$GHGEmissions_KG)
+plot(x=all_data_n$DistrictHeating_GJ , y=all_data_n$GHGEmissions_KG)
+plot(x=all_data_n$DistrictCooling_GJ, y=all_data_n$GHGEmissions_KG)
+plot(x=all_data_n$EnergyIntensityekWh_sqft, y=all_data_n$GHGEmissions_KG)
+plot(x=all_data_n$EnergyIntensity_ekWh_mega_litre, y=all_data_n$GHGEmissions_KG)
+
+# plot of Sector and OPeration type with GHG
+plot(x=all_data_n$TypeofSector, y=all_data_n$GHGEmissions_KG, main="GHG across Types of Sectors")  
+# Sector 4 Schoolboard has a big spread while other 3 sectors are around 0
+plot(x=all_data_n$TypeofOperation, y=all_data_n$GHGEmissions_KG,main="GHG across Types of Operations") 
+#TypeofOperation 17 (School) big spread, has greatest GHG followed by 1 (Administrative Office)
+
+######## Boxplots
+boxplot(all_data_n$GHGEmissions_KG ~ all_data_n$TypeofOperation, data=all_data_n, main="GHG across Types of Operation")
+boxplot(all_data_n$GHGEmissions_KG ~ all_data_n$TypeofSector, data=all_data_n, main="GHG across Sectors")
+boxplot(all_data_n$GHGEmissions_KG, horizontal=TRUE,main="GHG emissions")
+
+
+
+# GHG and type of sector
+plot(all_data_n$Electricity_kwh, all_data_n$GHGEmissions_KG,        # x variable, y variable
+     col = all_data_n$TypeofSector,                          # colour by TypeofSector
+     pch = 16,                                    # type of point to use
+     cex = 2,                                     # size of point to use
+     xlab = "Electricity",                       # x axis label
+     ylab = "GHG",                       # y axis label
+     main = "GHG and Electricity per Type of Sector")     # plot title
+legend (x = .8, y = .7, legend = levels(all_data_n$TypeofSector), col = c(1:4), pch = 16)
+
+# GHG and type of Operation
+plot(all_data_n$Electricity_kwh, all_data_n$GHGEmissions_KG,        # x variable, y variable
+     col = all_data_n$TypeofOperation,                          # colour by TypeofOperation
+     pch = 16,                                    # type of point to use
+     cex = 2,                                     # size of point to use
+     xlab = "Electricity",                       # x axis label
+     ylab = "GHG",                       # y axis label
+     main = "GHG and Electricity per Type of Operation")     # plot title
+legend (x = .9, y = .9, legend = levels(all_data_n$TypeofOperation), col = c(1:26), pch = 16)
+
+
+# following shows Type of Operation 17 (School) has highest GHG followed by 1 (Administrative Office)
+p<-ggplot(all_data_n, aes( all_data_n$GHGEmissions_KG, all_data_n$TypeofOperation))
+
+geom_boxplot(mapping = NULL, data = NULL, stat = "boxplot",
+  position = "dodge2",all_data_n, outlier.colour = NULL,
+  outlier.color = NULL, outlier.fill = NULL, outlier.shape = 19,
+  outlier.size = 1.5, outlier.stroke = 0.5, outlier.alpha = NULL,
+  notch = FALSE, notchwidth = 0.5, varwidth = FALSE, na.rm =TRUE,
+  show.legend = NA, inherit.aes = TRUE)
+
+p + geom_boxplot()
+
+
+
+#  using log scale for GHG - plot GHG versus Type of Operation,blue shows the outliers
+ggplot(data = all_data_n, aes(x=all_data_n$TypeofOperation, y=all_data_n$GHGEmissions_KG)) + 
+            scale_y_log10() +
+            geom_point(aes(color=all_data_n$TypeofOperation), alpha=0.2) +
+            geom_boxplot(outlier.size=4, outlier.colour='blue', alpha=0.1)
+
+
+# using log scale for GHG - plot GHG versus Sector,blue shows the outliers
+ggplot(data = all_data_n, aes(x=(all_data_n$TypeofSector), y=all_data_n$GHGEmissions_KG)) + 
+            scale_y_log10() +
+            geom_point(aes(color=(all_data_n$TypeofSector)), alpha=0.2) +
+            geom_boxplot(outlier.size=4, outlier.colour='blue', alpha=0.1)
+
+
+
+
+```
+
+# Exploratory phase 
+# Summaries for GHG by Sector and Type of operation
+
+
+#  Feature optimization - using Principal component analysis (using numerical columns of normalized data excluding GHG)
+
+```{r}
+#normalized data - look at spread of values in the variables
+#library(dplyr)
+
+#create table of counts of records for each OperationType arrange by descending counts
+# Results show that operation type school has the highest numbeof rows
+all_data_n %>%
+group_by(OperationType) %>%
+summarise(freq=n(), totalGHG=sum(GHGEmissions_KG)) %>%
+arrange(desc(freq))
+
+#create table of counts of records for each OperationType arrange by descending GHGEmissions.Kg
+# Results show that operation type school has the highest TotalGHG
+all_data_n %>%
+group_by(OperationType) %>%
+summarise(freq=n(), totalGHG=sum(GHGEmissions_KG)) %>%
+arrange(desc(totalGHG))
+
+#create table of counts of records for each Sector arrange by descending GHGEmissions.Kg
+# Results show that sector School Board has the highest numbeof rows
+all_data_n %>%
+group_by(Sector) %>%
+summarise(freq=n(), totalGHG=sum(GHGEmissions_KG)) %>%
+arrange(desc(totalGHG))
+
+####### Principal Component Analysis for feature selection
+
+# PCA including GHG
+str(all_data_n[,c(9:12,14:21, 23,25:27)])
+
+all_data_n_pca<-prcomp(all_data_n[,c(9:12,14:21, 23,25:27)], scale = TRUE)
+summary(all_data_n_pca)
+# PCA shows that the variance of first 13 principalcomponents account for 99.9% of the variance
+#PC1 has proportion of variance 30.68%, PC2 8.66 %, PC3 7.3% ..
+# Principal component analysis may not be the best method for feature selection as it does not narrow down the number of attributes of importance
+
+
+# PCA excluding GHG column
+all_data_n_pca<-prcomp(all_data_n[,c(9:12,14:21, 23,26,27)], scale = TRUE)
+summary(all_data_n_pca)
+# PCA shows that the variance of first 13 principalcomponents account for 99.9% of the variance]]
+#PC1 has proportion of variance 26.1%, PC2 9.2 %, PC3 7.7% ..
+# Principal component analysis may not be the best method for feature selection as it does not narrow down the number of attributes of importance
+
+```
+
+# Feature optimization (Dimensionality Reduction) - using the forward selection algorithm
+
+```{r echo=TRUE}
+
+library(MASS)
+
+# all the independent variables are included
+full <- lm(all_data_n$GHGEmissions_KG ~ all_data_n$TypeofSector+ all_data_n$TypeofOperation + all_data_n$TotalIndoorSpace_sqft + all_data_n$WeeklyAverageHours + all_data_n$AnnualFlow_M  + all_data$NumberofPortables + all_data_n$Electricity_kwh  + all_data_n$NaturalGas_Cubicmeter  + all_data_n$Propane_Litre  + all_data_n$DistrictHeating_GJ  + all_data_n$DistrictCooling_GJ + all_data_n$FuelOil12_L + all_data_n$FuelOil46_L, data=all_data_n)
+
+# none of the independent variables are selected.
+null <- lm(all_data_n$GHGEmissions_KG~1,data=all_data_n)
+
+stepF <- stepAIC(null, scope=list(lower=null, upper=full), direction= "forward", trace=FALSE)
+
+#display results]
+summary(stepF)
+stepF$anova
+###### Results give the following
+# Final Model:all_data_n$GHGEmissions_KG ~ all_data_n$FuelOil12_L + all_data_n$NaturalGas_Cubicmeter +     all_data_n$DistrictHeating_GJ + all_data_n$FuelOil46_L +  all_data_n$DistrictCooling_GJ + all_data_n$Electricity_kwh +  all_data_n$TypeofSector
+
+```
+```
+# Prediction Stage
+
+# Divide the normalized data into training and testing sets 70:30
+
+```{r}
+
+train_index <-sample (1:nrow(all_data_n), 0.7*nrow(all_data_n))
+train.set <- all_data_n[train_index,]
+test.set <- all_data_n[-train_index,]
+
+str(train.set)
+# train.set 61441 obs. of  29 variables
+str(test.set)
+# test.set 26333 obs. of  29 variables
+
+
+
+# Very Good plot - using the training set numerical columns show Correlations between pairs of attributes
+# takes very long to run (3 hours)
+# shows that GHG is determined by Electricity, Gas, Fuel Oil12 and Fuel Oil45 only
+# commented out line below because it takes hours to run
+
+# pairs.panels(train.set[,c(9:12,14:21, 23,25:27)], gap=0, pch=21)
+```
+
+# Prediction Stage - build model
+
+# Multivariate Linear Regression model
+
+```{r}
+
+###### Simple multivariate linear regression model
+# build model using train.set
+###### using lm
+set.seed(111)
+model_mlr1 <- lm(train.set$GHGEmissions_KG ~ train.set$FuelOil12_L + train.set$NaturalGas_Cubicmeter +     train.set$DistrictHeating_GJ + train.set$FuelOil46_L + train.set$DistrictCooling_GJ + train.set$Electricity_kwh +  train.set$TypeofSector, data=train.set) 
+  
+summary(model_mlr1)
+
+coefficients(model_mlr1)
+
+aov(model_mlr1)
+
+prediction_1 <- predict(model_mlr1, interval="prediction", newdata =test.set)
+
+# see errors and plot on histogram
+errors_1<- prediction_1[,"fit"] - test.set$GHGEmissions_KG
+hist(errors_1)
+
+# Compute the root mean square error and find the percentage of cases with less than 25% error.
+
+rmse_1 <- sqrt(sum((prediction_1[,"fit"] - all_data_n$GHGEmissions_KG)^2)/nrow(test.set))
+
+rel_change_1 <- 1 - ((test.set$GHGEmissions_KG - abs(errors_1)) / test.set$GHGEmissions_KG)
+
+pred25_1 <- table(rel_change_1<0.25)["TRUE"] / nrow(test.set) 
+paste("RMSE_1:", rmse_1) 
+paste("PRED(25):", pred25_1)
+
+###### using lm - dropped variable "TypeofSector"
+set.seed(222)
+model_mlr2 <- lm(train.set$GHGEmissions_KG ~ train.set$FuelOil12_L + train.set$NaturalGas_Cubicmeter +     train.set$DistrictHeating_GJ + train.set$FuelOil46_L + train.set$DistrictCooling_GJ + train.set$Electricity_kwh, data=train.set) 
+  
+summary(model_mlr2)
+
+coefficients(model_mlr2)
+
+aov(model_mlr2)
+
+prediction_2 <- predict(model_mlr2, interval="prediction", newdata =test.set)
+
+# see errors and plot on histogram
+errors_2<- prediction_2[,"fit"] - test.set$GHGEmissions_KG
+hist(errors_2)
+
+# Compute the root mean square error and find the percentage of cases with less than 25% error.
+
+rmse_2 <- sqrt(sum((prediction_2[,"fit"] - all_data_n$GHGEmissions_KG)^2)/nrow(test.set))
+
+rel_change_2 <- 1 - ((test.set$GHGEmissions_KG - abs(errors_2)) / test.set$GHGEmissions_KG)
+
+pred25_2 <- table(rel_change_2<0.25)["TRUE"] / nrow(test.set) 
+paste("RMSE_2:", rmse_2) 
+paste("PRED(25):", pred25_2)
+
+###### General multivariate linear regression model
+###### using glm - dropped variable "TypeofSector"
+set.seed(333)
+model_mlr3<-glm(train.set$GHGEmissions_KG ~ train.set$FuelOil12_L + train.set$NaturalGas_Cubicmeter +     train.set$DistrictHeating_GJ + train.set$FuelOil46_L + train.set$DistrictCooling_GJ + train.set$Electricity_kwh, data=train.set)
+
+summary(model_mlr3)
+
+coefficients(model_mlr3)
+
+aov(model_mlr3)
+
+#aov gives intercept and coefficient for each variable
+# From the result, formula to calculate GHG is
+
+
+prediction_3 <- predict(model_mlr3, type="response", se.fit=FALSE, newdata =test.set)
+
+# see errors and plot on histogram
+errors_3<- prediction_3 - test.set$GHGEmissions_KG
+hist(errors_3)
+
+# Compute the root mean square error and find the percentage of cases with less than 25% error.
+
+rmse_3 <- sqrt(sum((prediction_3 - all_data_n$GHGEmissions_KG)^2)/nrow(test.set))
+
+rel_change_3 <- 1 - ((test.set$GHGEmissions_KG - abs(errors_3)) / test.set$GHGEmissions_KG)
+
+pred25_3 <- table(rel_change_3<0.25)["TRUE"] / nrow(test.set) 
+paste("RMSE_3:", rmse_3) 
+paste("PRED(25):", pred25_3)
+
+
+aov(model_mlr1)
+aov(model_mlr2)
+aov(model_mlr3)
+paste("RMSE_1:", rmse_1)
+paste("RMSE_2:", rmse_2)
+paste("RMSE_3:", rmse_3)
+coefficients(model_mlr1)
+coefficients(model_mlr2)
+coefficients(model_mlr3)
+paste("PRED(25):", pred25_1)
+paste("PRED(25):", pred25_2)
+paste("PRED(25):", pred25_3)
+```
